@@ -1,66 +1,54 @@
-FROM ubuntu:24.04
+FROM alpine:3.20
 
-ARG RUNNER_VERSION="2.323.0"   
+ARG RUNNER_VERSION="2.323.0"
 
-# Prevents installdependencies.sh from prompting the user and blocking the image creation
-ARG DEBIAN_FRONTEND=noninteractive
+# Runtime + build deps. gcompat + libstdc++ are required because the official
+# GitHub Actions runner ships glibc-linked dotnet binaries.
+# docker-cli only (no daemon): compose.yml mounts /var/run/docker.sock from the host.
+RUN apk add --no-cache \
+        bash \
+        ca-certificates \
+        curl \
+        wget \
+        git \
+        jq \
+        unzip \
+        sudo \
+        shadow \
+        icu-libs \
+        libffi \
+        openssl \
+        krb5-libs \
+        zlib \
+        libstdc++ \
+        gcompat \
+        python3 \
+        py3-pip \
+        go \
+        docker-cli \
+        docker-cli-compose \
+        docker-cli-buildx \
+        github-cli \
+        aws-cli
 
-# Install dependencies
-RUN apt update -y && apt upgrade -y && useradd -m docker
-RUN apt install -y --no-install-recommends \
-    software-properties-common libicu-dev unzip jq curl jq build-essential libssl-dev libffi-dev python3 python3-venv python3-dev python3-pip
+# Create the docker user. Note: the GID of the in-container `docker` group should
+# match the host's docker group GID for /var/run/docker.sock access to work.
+# Override at build time with --build-arg DOCKER_GID=$(getent group docker | cut -d: -f3).
+ARG DOCKER_GID=999
+RUN addgroup -g ${DOCKER_GID} docker \
+    && adduser -D -h /home/docker -s /bin/bash -G docker docker
 
-# Install go
-RUN add-apt-repository ppa:longsleep/golang-backports -y \
-    && apt update -y \
-    && apt install -y golang-go
+# Install the GitHub Actions runner
+WORKDIR /home/docker/actions-runner
+RUN curl -fsSL -o runner.tar.gz \
+        https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
+    && tar xzf runner.tar.gz \
+    && rm runner.tar.gz \
+    && chown -R docker:docker /home/docker
 
-# Install aws-cli
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
-    && unzip awscliv2.zip \
-    && ./aws/install
+COPY --chown=docker:docker --chmod=755 start.sh /home/docker/start.sh
 
-# Install github cli
-RUN (type -p wget >/dev/null || (apt update && apt-get install wget -y)) \
-    && mkdir -p -m 755 /etc/apt/keyrings \
-    && out=$(mktemp) && wget -nv -O$out https://cli.github.com/packages/githubcli-archive-keyring.gpg \
-    && cat $out | tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
-    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
-    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-    && apt update \
-    && apt install gh -y
-
-# Install docker
-RUN apt install -y ca-certificates curl \
-    && install -m 0755 -d /etc/apt/keyrings \
-    && curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc \
-    && chmod a+r /etc/apt/keyrings/docker.asc \
-    && echo \
-        "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-        $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
-    tee /etc/apt/sources.list.d/docker.list > /dev/null \
-    && apt update \
-    && apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-# Add docker user to docker group
-RUN usermod -aG docker docker
-
-# Get and extract the github runner
-RUN cd /home/docker && mkdir actions-runner && cd actions-runner \
-    && curl -O -L https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
-    && tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz
-
-# Transfer ownership to the docker user and run the dependecies install
-RUN chown -R docker ~docker && /home/docker/actions-runner/bin/installdependencies.sh
-
-# Move the start script to docker
-COPY start.sh start.sh
-
-# make the script executable
-RUN chmod +x start.sh
-
-# since the config and run script for actions are not allowed to be run by root,
-# set the user to "docker" so all subsequent commands are run as the docker user
+WORKDIR /home/docker
 USER docker
 
 ENTRYPOINT ["./start.sh"]
