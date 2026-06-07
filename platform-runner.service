@@ -1,15 +1,17 @@
 [Unit]
-Description=Service to create Github runners for OpenTix/platform.
+Description=GitHub Actions runners (grid)
 After=docker.service
 Requires=docker.service
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-User=chris
-WorkingDirectory=/home/chris/grid
-ExecStart=/bin/bash -c "docker compose -f /home/chris/grid/compose.yml up --build --scale runner=4 --detach"
-ExecStop=/bin/bash -c "docker compose -f /home/chris/grid/compose.yml stop"
+# Replace <USER> with the host user that owns the grid checkout,
+# and <PATH> with the absolute path to that checkout.
+User=<USER>
+WorkingDirectory=<PATH>
+ExecStart=/bin/bash -c "docker compose up --build --scale runner=4 --detach"
+ExecStop=/bin/bash -c "docker compose stop"
 
 [Install]
 WantedBy=multi-user.target

@@ -1,6 +1,7 @@
 FROM alpine:3.20
 
 ARG RUNNER_VERSION="2.323.0"
+ARG RUNNER_SHA256="0dbc9bf5a58620fc52cb6cc0448abcca964a8d74b5f39773b7afcad9ab691e19"
 
 # Runtime + build deps. gcompat + libstdc++ are required because the official
 # GitHub Actions runner ships glibc-linked dotnet binaries.
@@ -42,6 +43,7 @@ RUN addgroup -g ${DOCKER_GID} docker \
 WORKDIR /home/docker/actions-runner
 RUN curl -fsSL -o runner.tar.gz \
         https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz \
+    && echo "${RUNNER_SHA256}  runner.tar.gz" | sha256sum -c - \
     && tar xzf runner.tar.gz \
     && rm runner.tar.gz \
     && chown -R docker:docker /home/docker

@@ -1,0 +1,19 @@
+services:
+  runner:
+    privileged: true
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        DOCKER_GID: ${DOCKER_GID:-999}
+    restart: always
+    environment:
+      - TOKEN=${TOKEN}
+      - REPO=${REPO}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      resources:
+        reservations:
+          cpus: '2'
+          memory: 256M

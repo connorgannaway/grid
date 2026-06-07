@@ -1,23 +1,22 @@
-# Github Runners in Docker
+# GitHub Runners in Docker
 
-This repo contains the files necessary to run multiple github runners for the OpenTix org on the one computer using Docker.
+Run multiple self-hosted GitHub Actions runners for a single repo on one host using Docker.
 
-When composing the docker file you can scale to as many runners as you want. Currently each runner is alotted 2 cpu cores and 256 MB of ram.
+You can scale to as many runners as you want via `--scale`. Each runner is allotted 2 CPU cores and 256 MB of RAM by default (see `compose.yml`).
 
 # Setup
 
-First generate a PAT token (classic) with the repo, workflow, and admin:org permissions.
-
-Then run ./setup.sh and provide your PAT token. This will create a compose.yml file and you are ready to run grid.
+1. Generate a GitHub PAT (classic) with the `repo` and `workflow` scopes.
+2. Run `./setup.sh` and provide the target repo (as `owner/repo`) and your PAT. This writes a local `.env` file (gitignored).
 
 # How to Use
 
-[Make sure docker is installed.](https://docs.docker.com/engine/install/ubuntu/)
+[Make sure Docker is installed.](https://docs.docker.com/engine/install/)
 
-Run `docker compose up --privileged --build --scale runner=4`.
+Run `docker compose up --build --scale runner=4`.
 
-To force fresh build run `docker compose build --no-cache`
+To force a fresh build run `docker compose build --no-cache`.
 
-# Setting up as Service
+# Setting up as a Service
 
-Example in platform-runner.service.
+See `platform-runner.service` for an example systemd unit. Replace `<USER>` and `<PATH>` before installing.
