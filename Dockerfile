@@ -64,8 +64,14 @@ RUN install -m 0755 -d /etc/apt/keyrings \
 # host's docker group GID for /var/run/docker.sock access to work.
 # Override at build time with --build-arg DOCKER_GID=$(getent group docker | cut -d: -f3).
 ARG DOCKER_GID=999
-RUN groupadd -g ${DOCKER_GID} docker \
-    && useradd -m -s /bin/bash -g docker docker
+RUN set -eux; \
+    if getent group "${DOCKER_GID}" >/dev/null; then \
+        existing=$(getent group "${DOCKER_GID}" | cut -d: -f1); \
+        if [ "$existing" != "docker" ]; then groupmod -n docker "$existing"; fi; \
+    else \
+        groupadd -g "${DOCKER_GID}" docker; \
+    fi; \
+    useradd -m -s /bin/bash -g docker docker
 
 # Install the GitHub Actions runner
 WORKDIR /home/docker/actions-runner
