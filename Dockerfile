@@ -73,6 +73,8 @@ RUN set -eux; \
     fi; \
     useradd -m -s /bin/bash -g docker docker
 
+RUN mkdir -p /var/cache/actions && chown docker:docker /var/cache/actions
+
 # Install the GitHub Actions runner
 WORKDIR /home/docker/actions-runner
 RUN curl -fsSL -o runner.tar.gz \

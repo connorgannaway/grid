@@ -1,6 +1,5 @@
 services:
   runner:
-    privileged: true
     build:
       context: .
       dockerfile: Dockerfile
@@ -10,10 +9,21 @@ services:
     environment:
       - TOKEN=${TOKEN}
       - REPO=${REPO}
+      # All actions that respect RUNNER_TOOL_CACHE (setup-node, setup-go,
+      # MasterworksIO/action-local-cache, etc.) will now read/write the shared
+      # volume below — caches survive container restarts and are reused across
+      # both runner replicas.
+      - RUNNER_TOOL_CACHE=/var/cache/actions
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - runner-tool-cache:/var/cache/actions
     deploy:
       resources:
+        limits:
+          cpus: "2"
+          memory: 6G
         reservations:
-          cpus: '2'
-          memory: 256M
+          cpus: "1"
+          memory: 1G
+
+volumes: runner-tool-cache
