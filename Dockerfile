@@ -34,6 +34,18 @@ RUN add-apt-repository ppa:longsleep/golang-backports -y \
     && apt-get install -y --no-install-recommends golang-go \
     && rm -rf /var/lib/apt/lists/*
 
+# Protocol Buffers compiler (Go plugins installed below via go install)
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
+
+# Go-based codegen tools: protoc-gen-go, protoc-gen-go-grpc, sqlc.
+# GOBIN=/usr/local/bin makes them globally available without PATH gymnastics.
+ENV GOBIN=/usr/local/bin
+RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest \
+    && go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest \
+    && go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
 # AWS CLI v2
 RUN curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
     && unzip -q awscliv2.zip \
