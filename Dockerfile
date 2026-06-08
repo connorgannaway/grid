@@ -26,17 +26,15 @@ RUN apt-get update \
         python3-pip \
         software-properties-common \
         build-essential \
+        libvips-dev \
+        pkg-config \
+        protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
 # Go (via official PPA for current versions)
 RUN add-apt-repository ppa:longsleep/golang-backports -y \
     && apt-get update \
     && apt-get install -y --no-install-recommends golang-go \
-    && rm -rf /var/lib/apt/lists/*
-
-# Protocol Buffers compiler (Go plugins installed below via go install)
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
 # Go-based codegen tools: protoc-gen-go, protoc-gen-go-grpc, sqlc.
