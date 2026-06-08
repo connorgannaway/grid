@@ -26,4 +26,5 @@ services:
           cpus: "1"
           memory: 1G
 
-volumes: runner-tool-cache
+volumes:
+  runner-tool-cache:
